@@ -9,5 +9,5 @@ __plugin_meta__ = PluginMetadata(
     usage="使用 mai2_pcount_help 来查看帮助信息喔~",
     type="application",
     homepage="https://github.com/shengwang52005/mai2_pcount",
-    supported_adapters={"~onebot.v11"},
+    supported_adapters={"~onebot.v11"}
 )

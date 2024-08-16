@@ -1,31 +1,30 @@
-from nonebot import on_command, on_endswith, on_regex
+from nonebot import on_command, on_endswith, on_regex, require
 from nonebot.adapters.onebot.v11 import Bot, Event, GroupMessageEvent, Message, MessageEvent
 from nonebot.typing import T_State
 from nonebot.params import CommandArg, Endswith, RegexMatched
 
+require("nonebot_plugin_localstore")
+
 import json
-import os
 from datetime import datetime
+import nonebot_plugin_localstore as store
 
-# 定义数据目录
-DATA_DIR = './data/mai2_pcount/'
+# 获取插件数据目录
+def get_data_file(group_id):
+    return store.get_data_file("mai2_pcount", f"{group_id}.json")
 
-# 创建数据目录
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
-
+# 读取写入数据通用
 def load_data(group_id):
-    data_file = os.path.join(DATA_DIR, f"{group_id}.json")
-    if os.path.exists(data_file):
-        with open(data_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    data_file = get_data_file(group_id)
+    if data_file.exists():
+        return json.loads(data_file.read_text(encoding='utf-8'))
     return {"enabled": False}
 
 def save_data(group_id, data):
-    data_file = os.path.join(DATA_DIR, f"{group_id}.json")
-    with open(data_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    data_file = get_data_file(group_id)
+    data_file.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding='utf-8')
 
+# 插件开关状态检查
 def is_plugin_enabled(data):
     return data.get("enabled", False)
 
@@ -258,6 +257,34 @@ async def handle_jt(bot: Bot, event: Event):
     message_lines.append(f"{region_name}一共有{total_count}人正在出勤")
     
     await jt.finish("\n".join(message_lines))
+
+# 查询所有机厅人数（简洁）
+jjt = on_command(
+    "jjt",
+    aliases={"!jjt","！jjt","/jjt","#jjt"},
+    priority=100,
+    block=True
+)
+
+@jjt.handle()
+async def handle_jjt(bot: Bot, event: Event):
+    group_id = str(event.group_id)
+    data = load_data(group_id)
+    status_message = check_plugin_status(data, event)
+    if status_message:
+        return
+    
+    region_name = data.get("region", "北京")  # 默认城市名 北京
+    total_count = 0
+    message_lines = ["当前机厅人数："]
+
+    for hall_id, hall_info in data.items():
+        if isinstance(hall_info, dict) and "count" in hall_info:
+            message_lines.append(f"{hall_info['name']} ({hall_id}): {hall_info['count']}人")
+            total_count += hall_info['count']
+
+    message_lines.append(f"\n区域名: {region_name}\n合计人数: {total_count}人")
+    await jjt.finish("\n".join(message_lines))
 
 # 修改地区名
 edit_region_name = on_command(
