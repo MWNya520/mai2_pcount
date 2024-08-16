@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mai2_pcount"
-version = "0.2.0"
+version = "0.2.1"
 description = "wmc的机厅在线人数信息查询、修改插件~"
 authors = ["Miaowing <shengwang52005@163.com>"]
 license = "MIT"
